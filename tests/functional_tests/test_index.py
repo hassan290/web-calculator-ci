@@ -2,17 +2,17 @@ from selenium import webdriver
 import pytest
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-
-chrome_driver = "chromedriver"
+from selenium.webdriver.chrome.service import Service
 
 class TestBackend:
 
-    def setup(self):
+    def setup_method(self):
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        self.driver = webdriver.Chrome(chrome_driver, options=chrome_options)
+        service = Service(executable_path="chromedriver")
+        self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
     def test_add(self, url):
         self.driver.get(f'{url}/add/1&2')
@@ -30,5 +30,5 @@ class TestBackend:
         self.driver.get(f'{url}/subtract/9&2')
         assert "Subtract 9 and 2. Got 7!" == self.driver.find_element(By.TAG_NAME, "body").text
 
-    def teardown(self):
+    def teardown_method(self):
         self.driver.quit()

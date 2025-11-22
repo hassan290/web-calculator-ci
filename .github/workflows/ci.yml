@@ -29,26 +29,36 @@ jobs:
   functional_tests:
     runs-on: ubuntu-latest
     needs: unit_tests
-    services:
-      app:
-        image: python:3.14
-        ports:
-          - 5000:5000
-        options: >-
-          --entrypoint /bin/bash
-          -c "pip install -r requirements.txt && python app.py"
     steps:
       - uses: actions/checkout@v3
 
-      - name: Wait for app to start
-        run: sleep 5
-
-      - name: Run functional curl tests
+      - name: Install Chrome
         run: |
-          curl "http://localhost:5000/multiply/2&2"
-          curl "http://localhost:5000/add/2&3"
-          curl "http://localhost:5000/subtract/5&2"
-          curl "http://localhost:5000/divide/10&2"
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+
+      - name: Install ChromeDriver
+        run: |
+          CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1)
+          wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROME_VERSION.0/chromedriver_linux64.zip
+          unzip /tmp/chromedriver.zip -d /usr/local/bin/
+          chmod +x /usr/local/bin/chromedriver
+
+      - name: Install Python dependencies for functional tests
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium pytest
+
+      - name: Run Flask app in background
+        run: |
+          python app.py &
+          sleep 5
+
+      - name: Run functional Selenium tests
+        run: |
+          pytest tests/functional_tests
 
   build:
     runs-on: ubuntu-latest

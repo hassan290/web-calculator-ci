@@ -6,12 +6,12 @@ from selenium.webdriver.chrome.service import Service
 
 class TestBackend:
 
-    def setup_method(self):
+    def setup(self):
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        service = Service(executable_path="chromedriver")
+        service = Service("chromedriver")
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
     def test_add(self, url):
@@ -30,5 +30,5 @@ class TestBackend:
         self.driver.get(f'{url}/subtract/9&2')
         assert "Subtract 9 and 2. Got 7!" == self.driver.find_element(By.TAG_NAME, "body").text
 
-    def teardown_method(self):
+    def teardown(self):
         self.driver.quit()

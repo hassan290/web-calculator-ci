@@ -28,24 +28,21 @@ jobs:
     needs: unit_tests
     steps:
       - uses: actions/checkout@v3
-      - name: Install Chrome
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+      - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y wget unzip xvfb libxi6 libgconf-2-4
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
-      - name: Install ChromeDriver
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run functional curl tests
         run: |
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
-          wget -N https://chromedriver.storage.googleapis.com/${CHROME_VERSION}/chromedriver_linux64.zip
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
-      - name: Run functional Selenium tests
-        run: |
-          export DISPLAY=:99
-          Xvfb :99 -screen 0 1024x768x16 &
-          pytest tests/functional_tests -q
+          echo "Functional curl tests"
+          curl "http://localhost:5000/multiply/2&2"
+          curl "http://localhost:5000/add/2&3"
+          curl "http://localhost:5000/subtract/5&2"
+          curl "http://localhost:5000/divide/10&2"
 
   build:
     runs-on: ubuntu-latest

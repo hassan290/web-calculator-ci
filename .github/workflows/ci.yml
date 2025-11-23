@@ -3,11 +3,26 @@ name: CI Pipeline
 on: [push]
 
 jobs:
-  test:
+  unit_tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run tests
+      - name: Run unit tests
         run: |
           pip install -r requirements.txt
           python -m pytest tests/unit_tests/ -v
+
+  functional_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Start Flask app
+        run: |
+          python app.py &
+          sleep 5
+      - name: Run functional tests
+        run: |
+          python -m pytest tests/functional_tests/ --url=http://localhost:5000 -v

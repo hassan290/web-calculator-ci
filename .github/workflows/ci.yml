@@ -10,7 +10,12 @@ jobs:
       - name: Run unit tests
         run: |
           pip install -r requirements.txt
-          python -m pytest tests/unit_tests/ -v
+          python -m pytest tests/unit_tests/ -v --junitxml=unit-results.xml
+      - name: Upload unit test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: unit-results.xml
 
   functional_tests:
     runs-on: ubuntu-latest
@@ -26,7 +31,12 @@ jobs:
           sleep 5
       - name: Run functional tests
         run: |
-          python -m pytest tests/functional_tests/ --url=http://localhost:5000 -v
+          python -m pytest tests/functional_tests/ --url=http://localhost:5000 -v --junitxml=functional-results.xml
+      - name: Upload functional test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: functional-test-results
+          path: functional-results.xml
 
   build_and_push:
     runs-on: ubuntu-latest
@@ -38,4 +48,22 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/web-calculator:${{ github.sha }} .
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
           docker push ${{ secrets.DOCKER_USERNAME }}/web-calculator:${{ github.sha }}
-          
+      - name: Save Docker image
+        run: |
+          docker save ${{ secrets.DOCKER_USERNAME }}/web-calculator:${{ github.sha }} -o web-calculator-image.tar
+      - name: Upload Docker image
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: web-calculator-image.tar
+
+  deploy:
+    needs: [build_and_push]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Application
+        run: |
+          cd blue-green-deployment
+          chmod +x deploy.sh
+          ./deploy.sh

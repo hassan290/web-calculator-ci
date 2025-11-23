@@ -68,7 +68,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/my-app/blue-green-app
+            cd /root/my-app/web-calculator-ci/blue-green-deployment
             docker-compose down
             docker-compose pull
             docker-compose up -d

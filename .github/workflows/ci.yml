@@ -64,6 +64,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Deploy Application
         run: |
-          cd blue-green-app
+          cd blue-green-deployment
           chmod +x deploy.sh
           ./deploy.sh

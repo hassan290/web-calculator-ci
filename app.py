@@ -10,6 +10,9 @@ calc = Calculator()
 def hello_world():
     return f"Hello, world"
 
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "healthy", "service": "web-calculator"}), 200
 
 @app.route("/add/<int:a>&<int:b>")
 def add(a, b):

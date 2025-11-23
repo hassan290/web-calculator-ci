@@ -67,3 +67,4 @@ jobs:
           cd blue-green-deployment
           chmod +x deploy.sh
           ./deploy.sh
+          

@@ -17,18 +17,33 @@ jobs:
           name: unit-test-results
           path: unit-results.xml
 
+  build_test_image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image for testing
+        run: |
+          docker build -t web-calculator-test:${{ github.sha }} .
+
   functional_tests:
     runs-on: ubuntu-latest
+    needs: build_test_image
+    services:
+      webapp:
+        image: web-calculator-test:${{ github.sha }}
+        ports:
+          - 5000:5000
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install webdriver-manager
-      - name: Start Flask app
+      - name: Wait for service to be ready
         run: |
-          python app.py &
-          sleep 5
+          until curl -f http://localhost:5000/; do
+            sleep 5
+          done
       - name: Run functional tests
         run: |
           python -m pytest tests/functional_tests/ --url=http://localhost:5000 -v --junitxml=functional-results.xml
@@ -40,24 +55,36 @@ jobs:
 
   curl_tests:
     runs-on: ubuntu-latest
+    needs: build_test_image
+    services:
+      webapp:
+        image: web-calculator-test:${{ github.sha }}
+        ports:
+          - 5000:5000
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
+      - name: Wait for service to be ready
         run: |
-          pip install -r requirements.txt
-      - name: Start Flask app
-        run: |
-          python app.py &
-          sleep 5
+          until curl -f http://localhost:5000/; do
+            sleep 5
+          done
       - name: Run curl tests
         run: |
-          echo "Starting curl tests..." > curl-test-report.txt
-          curl -f http://localhost:5000/ >> curl-test-report.txt 2>&1 || exit 1
-          curl -f "http://localhost:5000/add/2&3" >> curl-test-report.txt 2>&1 || exit 1
-          curl -f "http://localhost:5000/multiply/3&4" >> curl-test-report.txt 2>&1 || exit 1
-          curl -f "http://localhost:5000/subtract/10&4" >> curl-test-report.txt 2>&1 || exit 1
-          curl -f "http://localhost:5000/divide/20&5" >> curl-test-report.txt 2>&1 || exit 1
-          echo "All curl tests passed!" >> curl-test-report.txt
+          {
+            echo "🧪 Running curl tests..."
+            echo "=========================="
+            curl -f -w "Status: %{http_code}\n" http://localhost:5000/
+            echo "---"
+            curl -f -w "Status: %{http_code}\n" "http://localhost:5000/add/2&3"
+            echo "---"
+            curl -f -w "Status: %{http_code}\n" "http://localhost:5000/multiply/3&4"
+            echo "---"
+            curl -f -w "Status: %{http_code}\n" "http://localhost:5000/subtract/10&4"
+            echo "---"
+            curl -f -w "Status: %{http_code}\n" "http://localhost:5000/divide/20&5"
+            echo "=========================="
+            echo "✅ All curl tests passed!"
+          } > curl-test-report.txt
       - name: Upload curl test report
         uses: actions/upload-artifact@v4
         with:

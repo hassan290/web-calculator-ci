@@ -214,3 +214,16 @@ jobs:
         with:
           name: web-calculator-release
           path: web-calculator-release.zip
+
+  # -------------
+  # CD - Deploy to Render
+  # -------------
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [package_release]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to Render
+        run: |
+          curl -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"

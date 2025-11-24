@@ -52,7 +52,7 @@ jobs:
       - name: Run curl tests with JUnit output
         run: |
           pip install junit-xml
-          python -c "
+          python << 'EOF'
 import subprocess
 import sys
 from junit_xml import TestSuite, TestCase
@@ -87,7 +87,7 @@ for endpoint, name in endpoints:
 ts = TestSuite('Curl Tests', test_cases)
 with open('curl-results.xml', 'w') as f:
     TestSuite.to_file(f, [ts])
-"
+EOF
       - name: Upload curl test results
         uses: actions/upload-artifact@v4
         with:

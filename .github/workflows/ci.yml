@@ -24,24 +24,18 @@ jobs:
         image: python:3.9-slim
         ports:
           - "5000:5000"
+        options: --entrypoint /bin/bash
     steps:
       - uses: actions/checkout@v4
-      - name: Copy code to container
+      - name: Install and run app in container
         run: |
           docker cp . ${{ job.services.web-calculator.id }}:/app
-      - name: Install dependencies in container
-        run: |
-          docker exec ${{ job.services.web-calculator.id }} pip install -r /app/requirements.txt
-      - name: Start Flask app in container
-        run: |
-          docker exec -d ${{ job.services.web-calculator.id }} python /app/app.py
+          docker exec ${{ job.services.web-calculator.id }} bash -c "cd /app && pip install -r requirements.txt && python app.py" &
+          sleep 10
       - name: Install test dependencies
         run: |
           pip install -r requirements.txt
           pip install webdriver-manager
-      - name: Wait for app
-        run: |
-          sleep 10
       - name: Run functional tests
         run: |
           python -m pytest tests/functional_tests/ --url=http://localhost:5000 -v --junitxml=functional-results.xml

@@ -20,34 +20,36 @@ jobs:
   functional_tests:
     runs-on: ubuntu-latest
     services:
-      - name: web-calculator
-        image: python:3.9
+      web-calculator:
+        image: python:3.9-slim
         ports:
           - 5000:5000
-        env:
-          FLASK_ENV: production
+        volumes:
+          - ${{ github.workspace }}:/app
+        working-directory: /app
         options: >-
           --health-cmd "curl -f http://localhost:5000/ || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        volumes:
-          - ${{ github.workspace }}:/app
-        working_dir: /app
-        entrypoint: /bin/bash
-        args: -c "pip install -r requirements.txt && python app.py"
     steps:
       - uses: actions/checkout@v4
+      - name: Install app dependencies in container
+        run: |
+          docker exec ${{ job.services.web-calculator.id }} pip install -r requirements.txt
+      - name: Start Flask app in container
+        run: |
+          docker exec -d ${{ job.services.web-calculator.id }} python app.py
       - name: Install test dependencies
         run: |
           pip install -r requirements.txt
           pip install webdriver-manager selenium
       - name: Wait for app to be healthy
         run: |
-          timeout 60s bash -c 'until curl -f http://web-calculator:5000/; do sleep 2; done'
+          timeout 60s bash -c 'until curl -f http://localhost:5000/; do sleep 2; done'
       - name: Run functional tests
         run: |
-          python -m pytest tests/functional_tests/ --url=http://web-calculator:5000 -v --junitxml=functional-results.xml
+          python -m pytest tests/functional_tests/ --url=http://localhost:5000 -v --junitxml=functional-results.xml
       - name: Upload functional test results
         uses: actions/upload-artifact@v4
         with:

@@ -7,7 +7,7 @@ calc = Calculator()
 
 @app.route('/')
 def hello_world():
-    return f"Hello, world"
+    return f"Hello world!, Welcome to calculator app"
 
 @app.route('/health')
 def health_check():

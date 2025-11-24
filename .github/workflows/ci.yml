@@ -18,39 +18,39 @@ jobs:
           path: unit-results.xml
 
   functional_tests:
-      runs-on: ubuntu-latest
-      services:
-        web-calculator:
-          image: python:3.9-slim
-          ports:
-            - "5000:5000"
-          volumes:
-            - ${{ github.workspace }}:/app
-          working-directory: /app
-      steps:
-        - uses: actions/checkout@v4
-        - name: Install dependencies in container
-          run: |
-            docker exec ${{ job.services.web-calculator.id }} pip install -r requirements.txt
-        - name: Start Flask app in container
-          run: |
-            docker exec -d ${{ job.services.web-calculator.id }} python app.py
-        - name: Install test dependencies
-          run: |
-            pip install -r requirements.txt
-            pip install webdriver-manager
-        - name: Wait for app
-          run: |
-            sleep 10
-        - name: Run functional tests
-          run: |
-            python -m pytest tests/functional_tests/ --url=http://localhost:5000 -v --junitxml=functional-results.xml
-        - name: Upload functional test results
-          uses: actions/upload-artifact@v4
-          with:
-            name: functional-test-results
-            path: functional-results.xml
-            
+    runs-on: ubuntu-latest
+    services:
+      web-calculator:
+        image: python:3.9-slim
+        ports:
+          - "5000:5000"
+        volumes:
+          - ${{ github.workspace }}:/app
+        working-directory: /app
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies in container
+        run: |
+          docker exec ${{ job.services.web-calculator.id }} pip install -r requirements.txt
+      - name: Start Flask app in container
+        run: |
+          docker exec -d ${{ job.services.web-calculator.id }} python app.py
+      - name: Install test dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install webdriver-manager
+      - name: Wait for app
+        run: |
+          sleep 10
+      - name: Run functional tests
+        run: |
+          python -m pytest tests/functional_tests/ --url=http://localhost:5000 -v --junitxml=functional-results.xml
+      - name: Upload functional test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: functional-test-results
+          path: functional-results.xml
+
   build_and_push:
     runs-on: ubuntu-latest
     needs: [unit_tests, functional_tests]

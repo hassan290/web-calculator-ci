@@ -8,33 +8,22 @@ env:
 
 jobs:
   # -------------
-  # Build + Push image
+  # Build
   # -------------
   build:
     runs-on: ubuntu-latest
     outputs:
-      image_tag: ${{ steps.build.outputs.image_tag }}
+      image_tag: ${{ env.IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v4
       - name: Build Docker image
-        id: build
-        run: |
-          docker build -t $IMAGE_TAG .
-          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-      - name: Save Docker image
-        run: docker save $IMAGE_TAG -o web-calculator-image.tar
-      - name: Upload Docker image
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-image
-          path: web-calculator-image.tar
+        run: docker build -t $IMAGE_TAG .
 
   # -------------
   # Unit tests
   # -------------
   unit_tests:
     runs-on: ubuntu-latest
-    needs: build
     steps:
       - uses: actions/checkout@v4
       - name: Run unit tests
@@ -55,13 +44,13 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-      - name: Start application
+      - name: Build and start application
         run: |
-          docker load -i docker-image.tar
+          docker build -t ${{ needs.build.outputs.image_tag }} .
           docker run -d -p 5000:5000 --name app ${{ needs.build.outputs.image_tag }}
       - name: Wait for app
         run: |
-          timeout 60 bash -c 'until curl -f http://localhost:5000/; do sleep 2; done'
+          timeout $APP_START_TIMEOUT bash -c 'until curl -f http://localhost:5000/; do sleep 2; done'
       - name: Run functional tests
         run: |
           pip install -r requirements.txt
@@ -82,22 +71,26 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-      - name: Start application
+      - name: Build and start application
         run: |
-          docker load -i docker-image.tar
+          docker build -t ${{ needs.build.outputs.image_tag }} .
           docker run -d -p 5000:5000 --name app ${{ needs.build.outputs.image_tag }}
       - name: Wait for app
         run: |
-          timeout 60 bash -c 'until curl -f http://localhost:5000/; do sleep 2; done'
+          timeout $APP_START_TIMEOUT bash -c 'until curl -f http://localhost:5000/; do sleep 2; done'
       - name: Run curl tests
         run: |
-          echo "🧪 Running curl tests..." > curl-report.txt
-          curl -f http://localhost:5000/ >> curl-report.txt && echo "✅ Root OK" >> curl-report.txt
-          curl -f "http://localhost:5000/add/2&3" >> curl-report.txt && echo "✅ Add OK" >> curl-report.txt
-          curl -f "http://localhost:5000/multiply/3&4" >> curl-report.txt && echo "✅ Multiply OK" >> curl-report.txt
-          curl -f "http://localhost:5000/subtract/10&4" >> curl-report.txt && echo "✅ Subtract OK" >> curl-report.txt
-          curl -f "http://localhost:5000/divide/20&5" >> curl-report.txt && echo "✅ Divide OK" >> curl-report.txt
-          echo "🎉 All curl tests passed!" >> curl-report.txt
+          {
+            echo "🧪 Running curl tests..."
+            echo "=========================="
+            curl -f http://localhost:5000/ && echo "✅ Root OK"
+            curl -f "http://localhost:5000/add/2&3" && echo "✅ Add OK"
+            curl -f "http://localhost:5000/multiply/3&4" && echo "✅ Multiply OK"
+            curl -f "http://localhost:5000/subtract/10&4" && echo "✅ Subtract OK"
+            curl -f "http://localhost:5000/divide/20&5" && echo "✅ Divide OK"
+            echo "=========================="
+            echo "🎉 All curl tests passed!"
+          } > curl-report.txt
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
@@ -114,13 +107,13 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-      - name: Start application
+      - name: Build and start application
         run: |
-          docker load -i docker-image.tar
+          docker build -t ${{ needs.build.outputs.image_tag }} .
           docker run -d -p 5000:5000 --name app ${{ needs.build.outputs.image_tag }}
       - name: Wait for app
         run: |
-          timeout 60 bash -c 'until curl -f http://localhost:5000/; do sleep 2; done'
+          timeout $APP_START_TIMEOUT bash -c 'until curl -f http://localhost:5000/; do sleep 2; done'
       - name: Install Newman
         run: npm install -g newman
       - name: Run Postman tests
@@ -145,16 +138,16 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-      - name: Start application
+      - name: Build and start application
         run: |
-          docker load -i docker-image.tar
+          docker build -t ${{ needs.build.outputs.image_tag }} .
           docker run -d -p 5000:5000 --name app ${{ needs.build.outputs.image_tag }}
       - name: Start Selenium
         run: |
           docker run -d -p 4444:4444 --name selenium --shm-size=2g selenium/standalone-chrome:latest
       - name: Wait for services
         run: |
-          timeout 60 bash -c 'until curl -f http://localhost:5000/ && curl -f http://localhost:4444/wd/hub/status; do sleep 2; done'
+          timeout $APP_START_TIMEOUT bash -c 'until curl -f http://localhost:5000/ && curl -f http://localhost:4444/wd/hub/status; do sleep 2; done'
       - name: Run Selenium tests
         run: |
           pip install pytest selenium webdriver-manager
@@ -172,7 +165,7 @@ jobs:
   # -------------
   package_release:
     runs-on: ubuntu-latest
-    needs: [build, unit_tests, functional_tests, curl_tests, postman_tests, selenium_tests]
+    needs: [unit_tests, functional_tests, curl_tests, postman_tests, selenium_tests]
     steps:
       - uses: actions/checkout@v4
       - name: Create release package

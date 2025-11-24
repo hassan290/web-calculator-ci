@@ -49,20 +49,50 @@ jobs:
         run: |
           python app.py &
           sleep 5
-      - name: Run curl tests
+      - name: Run curl tests with JUnit output
         run: |
-          echo "🧪 Running curl tests..."
-          curl -f http://localhost:5000/ || exit 1
-          curl -f "http://localhost:5000/add/2&3" || exit 1
-          curl -f "http://localhost:5000/multiply/3&4" || exit 1
-          curl -f "http://localhost:5000/subtract/10&4" || exit 1
-          curl -f "http://localhost:5000/divide/20&5" || exit 1
-          echo "✅ All curl tests passed!"
-      - name: Upload curl test report
+          pip install junit-xml
+          python -c "
+import subprocess
+import sys
+from junit_xml import TestSuite, TestCase
+
+test_cases = []
+endpoints = [
+    ('/', 'Root endpoint'),
+    ('/add/2&3', 'Add endpoint'),
+    ('/multiply/3&4', 'Multiply endpoint'),
+    ('/subtract/10&4', 'Subtract endpoint'),
+    ('/divide/20&5', 'Divide endpoint')
+]
+
+for endpoint, name in endpoints:
+    test_case = TestCase(name, 'curl_tests')
+    try:
+        result = subprocess.run(
+            ['curl', '-f', '-s', '-w', 'Status: %{http_code}', f'http://localhost:5000{endpoint}'],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            test_case.stdout = result.stdout
+        else:
+            test_case.add_failure_info(f'HTTP Failure: {result.stderr}')
+    except subprocess.TimeoutExpired:
+        test_case.add_error_info('Request timeout')
+    except Exception as e:
+        test_case.add_error_info(f'Exception: {str(e)}')
+    
+    test_cases.append(test_case)
+
+ts = TestSuite('Curl Tests', test_cases)
+with open('curl-results.xml', 'w') as f:
+    TestSuite.to_file(f, [ts])
+"
+      - name: Upload curl test results
         uses: actions/upload-artifact@v4
         with:
           name: curl-test-results
-          path: curl-test-report.txt
+          path: curl-results.xml
 
   build_and_push:
     runs-on: ubuntu-latest

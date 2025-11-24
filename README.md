@@ -39,23 +39,14 @@
 **Running Application:**
 ![localhost](./images/localhost.png)
 
-**Health Check:**
-![localhost-health](./images/localhost-health.png)
+**Server:**
+![deploys](./images/deploys.png)
 
 **Testing:**
-![calculator-multiply](./images/calculator-multiply.png)
+![operation](./images/operation.png)
 
 **Docker Container:**
 ![docker-container](./images/docker-container.png)
 
 **Docker Image:**
 ![docker-image](./images/docker-image.png)
-
-**Docker Compose:**
-![docker-compose](./images/docker-compose.png)
-
-**Docker Compose File:**
-![docker-compose-yml](./images/docker-compose-yml.png)
-
-**Nginx-conf File:**
-![nginx-conf](./images/nginx-conf.png)

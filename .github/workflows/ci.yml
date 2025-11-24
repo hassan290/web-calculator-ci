@@ -24,17 +24,17 @@ jobs:
         image: python:3.9-slim
         ports:
           - "5000:5000"
-        volumes:
-          - ${{ github.workspace }}:/app
-        working-directory: /app
     steps:
       - uses: actions/checkout@v4
+      - name: Copy code to container
+        run: |
+          docker cp . ${{ job.services.web-calculator.id }}:/app
       - name: Install dependencies in container
         run: |
-          docker exec ${{ job.services.web-calculator.id }} pip install -r requirements.txt
+          docker exec ${{ job.services.web-calculator.id }} pip install -r /app/requirements.txt
       - name: Start Flask app in container
         run: |
-          docker exec -d ${{ job.services.web-calculator.id }} python app.py
+          docker exec -d ${{ job.services.web-calculator.id }} python /app/app.py
       - name: Install test dependencies
         run: |
           pip install -r requirements.txt
